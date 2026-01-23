@@ -21,4 +21,8 @@
     <ProjectReference Include="..\TripPlanner.Infrastructure\TripPlanner.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Endpoints\" />
+  </ItemGroup>
+
 </Project>

@@ -1,0 +1,7 @@
+﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=7f485eae_002D7a67_002D4637_002Da154_002D5f6a91097ed1/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="GetLocationsQueryValidatorTests" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;TestAncestor&gt;&#xD;
+    &lt;TestId&gt;MSTest::57CD413A-DF44-4D6F-A53A-D194B1B15E60::net10.0::TripPlanner.Application.UnitTests.Locations.Queries.GetLocationsQueryValidatorTests&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;MSTest::DB23D212-67D2-4EAC-AAF6-5096C82FE4A3::net10.0::TripPlanner.WebApi.IntegrationTests.Endpoints.LocationEndpointsTests.GetLocations_WithNoParameters_ReturnsOkWithPaginatedResponse&lt;/TestId&gt;&#xD;
+  &lt;/TestAncestor&gt;&#xD;
+&lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>

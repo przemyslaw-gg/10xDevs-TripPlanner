@@ -1,4 +1,5 @@
 using TripPlanner.WebApi.Endpoints;
+using TripPlanner.WebApi.Middleware;
 
 namespace TripPlanner.WebApi.Extensions;
 
@@ -9,6 +10,9 @@ public static class WebApplicationExtensions
 {
     public static WebApplication ConfigurePipeline(this WebApplication app)
     {
+        // Exception handling middleware (must be first to catch all exceptions)
+        app.UseMiddleware<ExceptionHandlingMiddleware>();
+
         // Development-specific middleware
         if (app.Environment.IsDevelopment())
         {
@@ -38,8 +42,6 @@ public static class WebApplicationExtensions
 
         // Map feature endpoints
         app.MapLocationEndpoints();
-        app.MapAttractionEndpoints();
-        app.MapTripEndpoints();
 
         return app;
     }
