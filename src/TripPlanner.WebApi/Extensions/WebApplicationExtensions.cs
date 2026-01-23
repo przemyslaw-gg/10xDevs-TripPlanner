@@ -42,6 +42,7 @@ public static class WebApplicationExtensions
 
         // Map feature endpoints
         app.MapLocationEndpoints();
+        app.MapAttractionEndpoints();
 
         return app;
     }
