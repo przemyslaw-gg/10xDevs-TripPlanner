@@ -6,7 +6,8 @@
       "Bash(dotnet new:*)",
       "Bash(dotnet test:*)",
       "Bash(dotnet sln:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(dotnet restore:*)"
     ]
   }
 }

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TripPlanner.Application.Common.Interfaces;
 using TripPlanner.Infrastructure.Persistence;
+using TripPlanner.Infrastructure.Services;
 
 namespace TripPlanner.Infrastructure;
 
@@ -26,6 +27,10 @@ public static class DependencyInjection
 
         services.AddScoped<IApplicationDbContext>(provider =>
             provider.GetRequiredService<ApplicationDbContext>());
+
+        // Auth Services
+        services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
+        services.AddScoped<ITokenService, JwtTokenService>();
 
         return services;
     }

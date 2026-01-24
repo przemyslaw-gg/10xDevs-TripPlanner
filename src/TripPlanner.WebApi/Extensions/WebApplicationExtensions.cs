@@ -27,6 +27,13 @@ public static class WebApplicationExtensions
         app.UseHttpsRedirection();
         app.UseCors();
 
+        // Rate limiting
+        app.UseRateLimiter();
+
+        // Authentication and Authorization
+        app.UseAuthentication();
+        app.UseAuthorization();
+
         // Map endpoints
         app.MapEndpoints();
 
@@ -41,6 +48,7 @@ public static class WebApplicationExtensions
             .WithTags("Health");
 
         // Map feature endpoints
+        app.MapAuthEndpoints();
         app.MapLocationEndpoints();
         app.MapAttractionEndpoints();
 
