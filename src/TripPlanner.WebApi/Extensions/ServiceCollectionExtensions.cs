@@ -1,5 +1,7 @@
 using TripPlanner.Application;
+using TripPlanner.Application.Common.Interfaces;
 using TripPlanner.Infrastructure;
+using TripPlanner.WebApi.Services;
 
 namespace TripPlanner.WebApi.Extensions;
 
@@ -19,6 +21,8 @@ public static class ServiceCollectionExtensions
         services.AddInfrastructure(configuration);
 
         // Add API-specific services
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
 
