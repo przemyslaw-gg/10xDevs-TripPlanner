@@ -5,7 +5,8 @@
       "Bash(dotnet ef migrations add:*)",
       "Bash(dotnet new:*)",
       "Bash(dotnet test:*)",
-      "Bash(dotnet sln:*)"
+      "Bash(dotnet sln:*)",
+      "Bash(tree:*)"
     ]
   }
 }

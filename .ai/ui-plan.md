@@ -40,7 +40,6 @@ TripPlanner to aplikacja webowa SPA (Single Page Application) do planowania jedn
 *Dla niezalogowanych:*
 - Opis aplikacji i jej głównych funkcji
 - Zachęta do rejestracji/logowania
-- Sekcja "Jak to działa" (3 kroki)
 
 *Dla zalogowanych:*
 - Powitanie użytkownika
@@ -50,7 +49,6 @@ TripPlanner to aplikacja webowa SPA (Single Page Application) do planowania jedn
 
 **Kluczowe komponenty:**
 - `HeroSection` - sekcja powitalna z CTA
-- `HowItWorks` - 3-krokowy opis działania
 - `TripPreviewList` - lista ostatnich wycieczek (dla zalogowanych)
 - `QuickActions` - przyciski szybkich akcji
 
