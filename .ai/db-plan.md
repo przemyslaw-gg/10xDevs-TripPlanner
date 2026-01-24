@@ -2,29 +2,71 @@
 
 ## 1. Tabele
 
-### 1.1. `profiles`
+### 1.1. `users`
 
-Rozszerzenie danych użytkownika z Supabase Auth.
+Użytkownicy systemu z autoryzacją OAuth 2.0 (Resource Owner Password Credentials).
 
 ```sql
-CREATE TABLE profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
     display_name VARCHAR(100),
+    email_verified BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT uq_users_email UNIQUE (email)
 );
 ```
 
 | Kolumna | Typ | Ograniczenia | Opis |
 |---------|-----|--------------|------|
-| `id` | UUID | PK, FK → auth.users ON DELETE CASCADE | Identyfikator użytkownika |
+| `id` | UUID | PK, DEFAULT gen_random_uuid() | Identyfikator użytkownika |
+| `email` | VARCHAR(255) | NOT NULL, UNIQUE | Adres email (login) |
+| `password_hash` | VARCHAR(255) | NOT NULL | Hash hasła (BCrypt/Argon2) |
 | `display_name` | VARCHAR(100) | — | Wyświetlana nazwa użytkownika |
+| `email_verified` | BOOLEAN | NOT NULL, DEFAULT FALSE | Czy email został zweryfikowany |
 | `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | Data utworzenia |
 | `updated_at` | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | Data ostatniej modyfikacji |
 
 ---
 
-### 1.2. `locations`
+### 1.2. `refresh_tokens`
+
+Tokeny odświeżania dla OAuth 2.0 (access tokeny są JWT, stateless).
+
+```sql
+CREATE TABLE refresh_tokens (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash VARCHAR(255) NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    revoked_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT uq_refresh_tokens_hash UNIQUE (token_hash)
+);
+```
+
+| Kolumna | Typ | Ograniczenia | Opis |
+|---------|-----|--------------|------|
+| `id` | UUID | PK, DEFAULT gen_random_uuid() | Identyfikator tokenu |
+| `user_id` | UUID | FK → users, NOT NULL, ON DELETE CASCADE | Właściciel tokenu |
+| `token_hash` | VARCHAR(255) | NOT NULL, UNIQUE | Hash tokenu (SHA256) |
+| `expires_at` | TIMESTAMPTZ | NOT NULL | Data wygaśnięcia |
+| `revoked_at` | TIMESTAMPTZ | — | Data unieważnienia (NULL = aktywny) |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | Data utworzenia |
+
+**Logika biznesowa:**
+- Access token: JWT, krótki czas życia (15-30 min), nie przechowywany w bazie
+- Refresh token: długi czas życia (7-30 dni), hash przechowywany w bazie
+- Przy wylogowaniu: ustawienie `revoked_at`
+- Walidacja: sprawdzenie `expires_at` i `revoked_at IS NULL`
+
+---
+
+### 1.3. `locations`
 
 Lokalizacje turystyczne (miasta, regiony).
 
@@ -50,7 +92,7 @@ CREATE TABLE locations (
 
 ---
 
-### 1.3. `attractions`
+### 1.4. `attractions`
 
 Atrakcje turystyczne przypisane do lokalizacji.
 
@@ -66,7 +108,7 @@ CREATE TABLE attractions (
     review_count INTEGER,
     estimated_duration INTEGER,
     image_url VARCHAR(500),
-    created_by_user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+    created_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     is_verified BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -85,7 +127,7 @@ CREATE TABLE attractions (
 | `review_count` | INTEGER | — | Liczba opinii (dane statyczne) |
 | `estimated_duration` | INTEGER | — | Szacowany czas zwiedzania w minutach |
 | `image_url` | VARCHAR(500) | — | URL do zdjęcia atrakcji |
-| `created_by_user_id` | UUID | FK → profiles, ON DELETE SET NULL | Autor (NULL = atrakcja systemowa) |
+| `created_by_user_id` | UUID | FK → users, ON DELETE SET NULL | Autor (NULL = atrakcja systemowa) |
 | `is_verified` | BOOLEAN | NOT NULL, DEFAULT FALSE | Czy atrakcja zweryfikowana |
 | `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | Data utworzenia |
 | `updated_at` | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | Data ostatniej modyfikacji |
@@ -96,14 +138,14 @@ CREATE TABLE attractions (
 
 ---
 
-### 1.4. `trips`
+### 1.5. `trips`
 
 Plany wycieczek tworzonych przez użytkowników.
 
 ```sql
 CREATE TABLE trips (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    owner_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
     location_id UUID REFERENCES locations(id) ON DELETE RESTRICT,
     is_public BOOLEAN NOT NULL DEFAULT FALSE,
@@ -118,7 +160,7 @@ CREATE TABLE trips (
 | Kolumna | Typ | Ograniczenia | Opis |
 |---------|-----|--------------|------|
 | `id` | UUID | PK, DEFAULT gen_random_uuid() | Identyfikator planu |
-| `owner_id` | UUID | FK → profiles, NOT NULL, ON DELETE CASCADE | Właściciel planu |
+| `owner_id` | UUID | FK → users, NOT NULL, ON DELETE CASCADE | Właściciel planu |
 | `name` | VARCHAR(100) | NOT NULL | Nazwa planu (np. "Ateny 2026") |
 | `location_id` | UUID | FK → locations, ON DELETE RESTRICT | Główna lokalizacja wycieczki |
 | `is_public` | BOOLEAN | NOT NULL, DEFAULT FALSE | Czy plan jest publiczny |
@@ -130,7 +172,7 @@ CREATE TABLE trips (
 
 ---
 
-### 1.5. `trip_attractions`
+### 1.6. `trip_attractions`
 
 Tabela pośrednia łącząca plany z atrakcjami, zawierająca harmonogram.
 
@@ -172,25 +214,25 @@ CREATE TABLE trip_attractions (
 ## 2. Relacje między tabelami
 
 ```
-auth.users (Supabase Auth)
-    │
-    └──1:1──> profiles
-                  │
-                  ├──1:N──> trips ──N:M──> attractions
-                  │            │              (przez trip_attractions)
-                  │            │
-                  │            └──N:1──> locations
-                  │
-                  └──1:N──> attractions (created_by_user_id, nullable)
-                                │
-                                └──N:1──> locations
+users
+  │
+  ├──1:N──> refresh_tokens
+  │
+  ├──1:N──> trips ──N:M──> attractions
+  │            │              (przez trip_attractions)
+  │            │
+  │            └──N:1──> locations
+  │
+  └──1:N──> attractions (created_by_user_id, nullable)
+                │
+                └──N:1──> locations
 ```
 
 | Relacja | Typ | Opis |
 |---------|-----|------|
-| `auth.users` → `profiles` | 1:1 | Każdy użytkownik ma dokładnie jeden profil |
-| `profiles` → `trips` | 1:N | Użytkownik może mieć wiele planów |
-| `profiles` → `attractions` | 1:N | Użytkownik może utworzyć wiele atrakcji |
+| `users` → `refresh_tokens` | 1:N | Użytkownik może mieć wiele tokenów (historycznych) |
+| `users` → `trips` | 1:N | Użytkownik może mieć wiele planów |
+| `users` → `attractions` | 1:N | Użytkownik może utworzyć wiele atrakcji |
 | `locations` → `attractions` | 1:N | Lokalizacja może mieć wiele atrakcji |
 | `locations` → `trips` | 1:N | Lokalizacja może być celem wielu planów |
 | `trips` ↔ `attractions` | N:M | Plan zawiera wiele atrakcji, atrakcja może być w wielu planach |
@@ -199,9 +241,9 @@ auth.users (Supabase Auth)
 
 | Źródło | Cel | Akcja | Uzasadnienie |
 |--------|-----|-------|--------------|
-| `auth.users` | `profiles` | CASCADE | Usunięcie konta usuwa profil |
-| `profiles` | `trips` | CASCADE | Usunięcie profilu usuwa plany użytkownika |
-| `profiles` | `attractions` | SET NULL | Usunięcie profilu nie usuwa atrakcji |
+| `users` | `refresh_tokens` | CASCADE | Usunięcie konta usuwa tokeny |
+| `users` | `trips` | CASCADE | Usunięcie konta usuwa plany użytkownika |
+| `users` | `attractions` | SET NULL | Usunięcie konta nie usuwa atrakcji |
 | `locations` | `attractions` | RESTRICT | Nie można usunąć lokalizacji z atrakcjami |
 | `locations` | `trips` | RESTRICT | Nie można usunąć lokalizacji z planami |
 | `trips` | `trip_attractions` | CASCADE | Usunięcie planu usuwa powiązania |
@@ -212,6 +254,14 @@ auth.users (Supabase Auth)
 ## 3. Indeksy
 
 ```sql
+-- users
+CREATE INDEX idx_users_email ON users(email);
+
+-- refresh_tokens
+CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id);
+CREATE INDEX idx_refresh_tokens_expires ON refresh_tokens(expires_at)
+    WHERE revoked_at IS NULL;
+
 -- locations
 CREATE INDEX idx_locations_name_country ON locations(name, country);
 
@@ -233,6 +283,9 @@ CREATE INDEX idx_trip_attractions_attraction ON trip_attractions(attraction_id);
 
 | Tabela | Indeks | Kolumny | Typ | Uzasadnienie |
 |--------|--------|---------|-----|--------------|
+| `users` | `idx_users_email` | (email) | B-tree | Logowanie po email |
+| `refresh_tokens` | `idx_refresh_tokens_user` | (user_id) | B-tree | Tokeny użytkownika |
+| `refresh_tokens` | `idx_refresh_tokens_expires` | (expires_at) | Partial | Czyszczenie wygasłych tokenów |
 | `locations` | `idx_locations_name_country` | (name, country) | B-tree | Wyszukiwanie lokalizacji |
 | `attractions` | `idx_attractions_location_rating` | (location_id, rating DESC) | B-tree | Lista atrakcji dla lokalizacji sortowana po ocenie |
 | `attractions` | `idx_attractions_name` | (name) | B-tree | Wyszukiwanie atrakcji po nazwie |
@@ -245,172 +298,68 @@ CREATE INDEX idx_trip_attractions_attraction ON trip_attractions(attraction_id);
 
 ---
 
-## 4. Polityki PostgreSQL (Row Level Security)
+## 4. Autoryzacja na poziomie aplikacji
 
-### 4.1. Włączenie RLS
+Ponieważ autoryzacja odbywa się w .NET (OAuth 2.0), nie używamy Row Level Security (RLS) w PostgreSQL. Cała logika autoryzacji jest implementowana w warstwie aplikacji.
 
-```sql
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE locations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE attractions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE trips ENABLE ROW LEVEL SECURITY;
-ALTER TABLE trip_attractions ENABLE ROW LEVEL SECURITY;
+### 4.1. Przepływ OAuth 2.0
+
+```
+┌─────────┐      ┌─────────────┐      ┌──────────────┐
+│  Client │──1──>│  /api/auth  │──2──>│   Database   │
+│ (React) │      │   /login    │      │   (users)    │
+└─────────┘      └─────────────┘      └──────────────┘
+     │                  │
+     │<───3─── Access Token (JWT) + Refresh Token
+     │
+     │           ┌─────────────┐
+     │───4──────>│  /api/...   │  (Authorization: Bearer {access_token})
+     │           │  (protected)│
+     │           └─────────────┘
 ```
 
-### 4.2. Polityki dla `profiles`
+1. Klient wysyła email + hasło do `/api/auth/login`
+2. Serwer weryfikuje hasło (BCrypt) i tworzy tokeny
+3. Zwraca: access token (JWT, 15-30 min) + refresh token (7-30 dni)
+4. Klient używa access token do autoryzowanych żądań
 
-```sql
--- Użytkownik widzi tylko swój profil
-CREATE POLICY "profiles_select_own"
-    ON profiles FOR SELECT
-    USING (id = auth.uid());
+### 4.2. Endpointy autoryzacji
 
--- Użytkownik może aktualizować tylko swój profil
-CREATE POLICY "profiles_update_own"
-    ON profiles FOR UPDATE
-    USING (id = auth.uid());
+| Endpoint | Metoda | Opis |
+|----------|--------|------|
+| `/api/auth/register` | POST | Rejestracja nowego użytkownika |
+| `/api/auth/login` | POST | Logowanie (email + hasło → tokeny) |
+| `/api/auth/refresh` | POST | Odświeżenie access token |
+| `/api/auth/logout` | POST | Wylogowanie (unieważnienie refresh token) |
+| `/api/auth/me` | GET | Dane zalogowanego użytkownika |
 
--- Użytkownik może wstawić tylko swój profil (dla triggera)
-CREATE POLICY "profiles_insert_own"
-    ON profiles FOR INSERT
-    WITH CHECK (id = auth.uid());
+### 4.3. Struktura JWT (Access Token)
+
+```json
+{
+  "sub": "user-uuid",
+  "email": "user@example.com",
+  "name": "Display Name",
+  "iat": 1706000000,
+  "exp": 1706001800
+}
 ```
 
-### 4.3. Polityki dla `locations`
+### 4.4. Reguły autoryzacji w aplikacji
 
-```sql
--- Lokalizacje są publiczne do odczytu
-CREATE POLICY "locations_select_all"
-    ON locations FOR SELECT
-    USING (true);
-
--- Tylko administratorzy mogą modyfikować (przez service role)
-```
-
-### 4.4. Polityki dla `attractions`
-
-```sql
--- Wszystkie atrakcje są widoczne publicznie
-CREATE POLICY "attractions_select_all"
-    ON attractions FOR SELECT
-    USING (true);
-
--- Zalogowani użytkownicy mogą dodawać atrakcje
-CREATE POLICY "attractions_insert_authenticated"
-    ON attractions FOR INSERT
-    WITH CHECK (auth.uid() IS NOT NULL);
-
--- Użytkownicy mogą edytować tylko swoje atrakcje
-CREATE POLICY "attractions_update_own"
-    ON attractions FOR UPDATE
-    USING (created_by_user_id = auth.uid());
-
--- Użytkownicy mogą usuwać tylko swoje atrakcje
--- (aplikacja dodatkowo sprawdza czy atrakcja nie jest używana w cudzych planach)
-CREATE POLICY "attractions_delete_own"
-    ON attractions FOR DELETE
-    USING (created_by_user_id = auth.uid());
-```
-
-### 4.5. Polityki dla `trips`
-
-```sql
--- Użytkownik widzi swoje plany oraz publiczne plany innych
-CREATE POLICY "trips_select_own_or_public"
-    ON trips FOR SELECT
-    USING (is_public = TRUE OR owner_id = auth.uid());
-
--- Użytkownik może tworzyć plany tylko dla siebie
-CREATE POLICY "trips_insert_own"
-    ON trips FOR INSERT
-    WITH CHECK (owner_id = auth.uid());
-
--- Użytkownik może edytować tylko swoje plany
-CREATE POLICY "trips_update_own"
-    ON trips FOR UPDATE
-    USING (owner_id = auth.uid());
-
--- Użytkownik może usuwać tylko swoje plany
-CREATE POLICY "trips_delete_own"
-    ON trips FOR DELETE
-    USING (owner_id = auth.uid());
-```
-
-### 4.6. Polityki dla `trip_attractions`
-
-```sql
--- Użytkownik widzi trip_attractions dla dostępnych planów
-CREATE POLICY "trip_attractions_select"
-    ON trip_attractions FOR SELECT
-    USING (
-        EXISTS (
-            SELECT 1 FROM trips
-            WHERE trips.id = trip_attractions.trip_id
-            AND (trips.is_public = TRUE OR trips.owner_id = auth.uid())
-        )
-    );
-
--- Użytkownik może dodawać atrakcje tylko do swoich planów
-CREATE POLICY "trip_attractions_insert_own"
-    ON trip_attractions FOR INSERT
-    WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM trips
-            WHERE trips.id = trip_attractions.trip_id
-            AND trips.owner_id = auth.uid()
-        )
-    );
-
--- Użytkownik może edytować atrakcje tylko w swoich planach
-CREATE POLICY "trip_attractions_update_own"
-    ON trip_attractions FOR UPDATE
-    USING (
-        EXISTS (
-            SELECT 1 FROM trips
-            WHERE trips.id = trip_attractions.trip_id
-            AND trips.owner_id = auth.uid()
-        )
-    );
-
--- Użytkownik może usuwać atrakcje tylko ze swoich planów
-CREATE POLICY "trip_attractions_delete_own"
-    ON trip_attractions FOR DELETE
-    USING (
-        EXISTS (
-            SELECT 1 FROM trips
-            WHERE trips.id = trip_attractions.trip_id
-            AND trips.owner_id = auth.uid()
-        )
-    );
-```
+| Zasób | Reguła |
+|-------|--------|
+| `users` | Użytkownik widzi/edytuje tylko siebie |
+| `locations` | Publiczny odczyt, brak modyfikacji (dane systemowe) |
+| `attractions` | Publiczny odczyt, tworzenie dla zalogowanych, edycja/usuwanie tylko własnych |
+| `trips` | Odczyt własnych + publicznych, tworzenie/edycja/usuwanie tylko własnych |
+| `trip_attractions` | Zgodnie z uprawnieniami do trip |
 
 ---
 
 ## 5. Funkcje i triggery
 
-### 5.1. Automatyczne tworzenie profilu
-
-```sql
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-    INSERT INTO public.profiles (id, display_name, created_at, updated_at)
-    VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'display_name', NEW.email), NOW(), NOW());
-    RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER on_auth_user_created
-    AFTER INSERT ON auth.users
-    FOR EACH ROW
-    EXECUTE FUNCTION public.handle_new_user();
-```
-
-### 5.2. Automatyczna aktualizacja `updated_at`
+### 5.1. Automatyczna aktualizacja `updated_at`
 
 ```sql
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -424,8 +373,8 @@ END;
 $$;
 
 -- Triggery dla każdej tabeli
-CREATE TRIGGER set_updated_at_profiles
-    BEFORE UPDATE ON profiles
+CREATE TRIGGER set_updated_at_users
+    BEFORE UPDATE ON users
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
@@ -450,6 +399,28 @@ CREATE TRIGGER set_updated_at_trip_attractions
     EXECUTE FUNCTION update_updated_at_column();
 ```
 
+### 5.2. Czyszczenie wygasłych tokenów (opcjonalne)
+
+```sql
+-- Funkcja do czyszczenia wygasłych/unieważnionych tokenów
+CREATE OR REPLACE FUNCTION cleanup_expired_tokens()
+RETURNS INTEGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    deleted_count INTEGER;
+BEGIN
+    DELETE FROM refresh_tokens
+    WHERE expires_at < NOW() OR revoked_at IS NOT NULL;
+
+    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    RETURN deleted_count;
+END;
+$$;
+
+-- Można wywołać okresowo przez pg_cron lub scheduled job w aplikacji
+```
+
 ---
 
 ## 6. Dodatkowe uwagi
@@ -458,47 +429,65 @@ CREATE TRIGGER set_updated_at_trip_attractions
 
 | Aspekt | Decyzja | Uzasadnienie |
 |--------|---------|--------------|
-| Autentykacja | Supabase Auth | Natywne RLS, gotowe API, bezpieczeństwo |
+| Autentykacja | .NET OAuth 2.0 | Pełna kontrola, brak zależności od Supabase |
+| Hashowanie haseł | BCrypt/Argon2 | Bezpieczne, standardowe algorytmy |
+| Access Token | JWT (stateless) | Brak zapytań do DB przy każdym żądaniu |
+| Refresh Token | Hash w DB | Możliwość unieważnienia, bezpieczeństwo |
+| Autoryzacja | Warstwa aplikacji | Logika w handlerach MediatR |
 | Współrzędne | DECIMAL(10,7) | Precyzja ~1cm, wystarczająca dla nawigacji |
 | Czas zwiedzania | INTEGER (minuty) | Prostota obliczeń |
 | Planowany czas startu | TIME | Lokalna godzina destynacji |
 | Punkt startowy | order_index = 1 | Brak redundancji |
 | Soft delete | Nie | Hard delete w MVP |
-| Walidacja współrzędnych | Aplikacja | Brak CHECK constraints |
-| Limity | Brak | Nie potrzebne w MVP |
 
 ### 6.2. Walidacja na poziomie aplikacji
 
 Następujące walidacje są implementowane w aplikacji (nie w bazie):
 
-1. **Współrzędne geograficzne:**
+1. **Rejestracja użytkownika:**
+   - email: poprawny format, unikalność
+   - hasło: min 8 znaków, wymagania złożoności
+
+2. **Współrzędne geograficzne:**
    - latitude: -90 do 90
    - longitude: -180 do 180
 
-2. **Usuwanie atrakcji użytkownika:**
+3. **Usuwanie atrakcji użytkownika:**
    - Sprawdzenie czy atrakcja nie jest używana w planach innych użytkowników
    - Jeśli jest używana tylko we własnych planach → kaskadowe usunięcie z planów
 
-3. **Parametry planowania:**
+4. **Parametry planowania:**
    - daily_hours: 1-24
    - max_extension_hours: 0-8
    - start_time: poprawny format TIME
 
-### 6.3. Migracja i seed data
+### 6.3. Bezpieczeństwo
+
+| Aspekt | Implementacja |
+|--------|---------------|
+| Hasła | BCrypt z cost factor 12+ lub Argon2id |
+| JWT Secret | Silny klucz (256-bit), przechowywany bezpiecznie |
+| Refresh Token | Losowy (256-bit), przechowywany jako SHA256 hash |
+| HTTPS | Wymagane w produkcji |
+| Rate limiting | Na endpointach auth (logowanie, rejestracja) |
+| Token rotation | Opcjonalnie: nowy refresh token przy każdym odświeżeniu |
+
+### 6.4. Migracja i seed data
 
 Dane początkowe (lokalizacje, atrakcje systemowe) będą dodane w późniejszym etapie przez:
 - Skrypty SQL seed
 - Import z plików JSON/CSV
 - Panel administracyjny
 
-### 6.4. Zgodność z Clean Architecture
+### 6.5. Zgodność z Clean Architecture
 
 Schemat jest zaprojektowany z myślą o mapowaniu na encje domenowe:
 
 ```
 Domain Entities          Database Tables
 ─────────────────        ───────────────
-User (Value Object)  →   profiles
+User                 →   users
+RefreshToken         →   refresh_tokens
 Location             →   locations
 Attraction           →   attractions
 Trip                 →   trips

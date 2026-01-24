@@ -4,8 +4,8 @@
 
 | Resource | Database Table | Description |
 |----------|---------------|-------------|
-| Auth | auth.users (Supabase) | Authentication operations (register, login, logout) |
-| Profiles | profiles | User profile management |
+| Auth | users, refresh_tokens | Authentication operations (register, login, logout, refresh) |
+| Users | users | User account management |
 | Locations | locations | Tourist destinations (cities, regions) |
 | Attractions | attractions | Tourist attractions with details |
 | Trips | trips | User trip plans |
@@ -50,7 +50,7 @@ Register a new user account.
 
 #### POST /api/auth/login
 
-Authenticate user and return JWT token.
+Authenticate user and return access token + refresh token.
 
 **Request Body:**
 ```json
@@ -64,7 +64,9 @@ Authenticate user and return JWT token.
 ```json
 {
   "accessToken": "eyJhbGciOiJIUzI1NiIs...",
-  "expiresAt": "2026-01-23T10:00:00Z",
+  "refreshToken": "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4...",
+  "expiresIn": 1800,
+  "tokenType": "Bearer",
   "user": {
     "id": "uuid",
     "email": "user@example.com",
@@ -81,12 +83,48 @@ Authenticate user and return JWT token.
 
 ---
 
+#### POST /api/auth/refresh
+
+Refresh access token using refresh token.
+
+**Request Body:**
+```json
+{
+  "refreshToken": "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4..."
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+  "refreshToken": "bmV3IHJlZnJlc2ggdG9rZW4...",
+  "expiresIn": 1800,
+  "tokenType": "Bearer"
+}
+```
+
+**Error Codes:**
+| Code | Description |
+|------|-------------|
+| 400 | Validation error (missing token) |
+| 401 | Invalid or expired refresh token |
+
+---
+
 #### POST /api/auth/logout
 
-Invalidate current session/token.
+Invalidate refresh token (revoke session).
 
 **Headers:**
 - `Authorization: Bearer {token}`
+
+**Request Body:**
+```json
+{
+  "refreshToken": "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4..."
+}
+```
 
 **Response (204 No Content)**
 
@@ -110,31 +148,7 @@ Get current authenticated user information.
   "id": "uuid",
   "email": "user@example.com",
   "displayName": "John Doe",
-  "createdAt": "2026-01-22T10:00:00Z"
-}
-```
-
-**Error Codes:**
-| Code | Description |
-|------|-------------|
-| 401 | Not authenticated |
-
----
-
-### 2.2. Profiles
-
-#### GET /api/profiles/me
-
-Get current user's profile.
-
-**Headers:**
-- `Authorization: Bearer {token}`
-
-**Response (200 OK):**
-```json
-{
-  "id": "uuid",
-  "displayName": "John Doe",
+  "emailVerified": false,
   "createdAt": "2026-01-22T10:00:00Z",
   "updatedAt": "2026-01-22T10:00:00Z"
 }
@@ -147,9 +161,11 @@ Get current user's profile.
 
 ---
 
-#### PUT /api/profiles/me
+### 2.2. Users
 
-Update current user's profile.
+#### PUT /api/users/me
+
+Update current user's account information.
 
 **Headers:**
 - `Authorization: Bearer {token}`
@@ -165,7 +181,9 @@ Update current user's profile.
 ```json
 {
   "id": "uuid",
+  "email": "user@example.com",
   "displayName": "John Smith",
+  "emailVerified": false,
   "createdAt": "2026-01-22T10:00:00Z",
   "updatedAt": "2026-01-22T11:00:00Z"
 }
@@ -176,6 +194,31 @@ Update current user's profile.
 |------|-------------|
 | 400 | Validation error (displayName too long) |
 | 401 | Not authenticated |
+
+---
+
+#### PUT /api/users/me/password
+
+Change current user's password.
+
+**Headers:**
+- `Authorization: Bearer {token}`
+
+**Request Body:**
+```json
+{
+  "currentPassword": "OldPassword123!",
+  "newPassword": "NewSecurePassword456!"
+}
+```
+
+**Response (204 No Content)**
+
+**Error Codes:**
+| Code | Description |
+|------|-------------|
+| 400 | Validation error (weak password) |
+| 401 | Not authenticated or incorrect current password |
 
 ---
 
@@ -1100,33 +1143,75 @@ Get current schedule without regenerating.
 
 ## 3. Authentication and Authorization
 
-### 3.1. Authentication Mechanism
+### 3.1. OAuth 2.0 Authentication
 
-The API uses **JWT (JSON Web Token)** based authentication integrated with **ASP.NET Core Identity**.
+The API uses **OAuth 2.0 Resource Owner Password Credentials** flow with JWT access tokens and refresh tokens.
+
+**Token Types:**
+| Token | Storage | Lifetime | Purpose |
+|-------|---------|----------|---------|
+| Access Token | Client memory | 15-30 minutes | API authorization |
+| Refresh Token | HttpOnly cookie or secure storage | 7-30 days | Obtain new access tokens |
 
 **Authentication Flow:**
-1. User registers via `POST /api/auth/register`
-2. User logs in via `POST /api/auth/login` and receives JWT token
-3. Client includes token in `Authorization` header for subsequent requests
-4. Token is validated on each request
+```
+┌─────────┐      ┌─────────────┐      ┌──────────────┐
+│  Client │──1──>│  /api/auth  │──2──>│   Database   │
+│ (React) │      │   /login    │      │   (users)    │
+└─────────┘      └─────────────┘      └──────────────┘
+     │                  │
+     │<───3─── Access Token (JWT) + Refresh Token
+     │
+     │           ┌─────────────┐
+     │───4──────>│  /api/...   │  (Authorization: Bearer {access_token})
+     │           │  (protected)│
+     │           └─────────────┘
+     │
+     │  (when access token expires)
+     │           ┌─────────────┐
+     │───5──────>│  /api/auth  │  (refresh token)
+     │           │  /refresh   │
+     │<───6─── New Access Token + New Refresh Token
+```
 
-**Token Format:**
+1. User submits credentials to `/api/auth/login`
+2. Server validates password (BCrypt) against database
+3. Server returns JWT access token + refresh token
+4. Client includes access token in `Authorization` header
+5. When access token expires, client calls `/api/auth/refresh`
+6. Server validates refresh token and issues new token pair
+
+**Access Token Format (JWT):**
 ```
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-**Token Claims:**
-- `sub` - User ID (UUID)
-- `email` - User email
-- `exp` - Expiration timestamp
-- `iat` - Issued at timestamp
+**Access Token Claims:**
+```json
+{
+  "sub": "user-uuid",
+  "email": "user@example.com",
+  "name": "Display Name",
+  "iat": 1706000000,
+  "exp": 1706001800
+}
+```
+
+**Refresh Token:**
+- Random 256-bit value
+- Stored as SHA256 hash in database
+- Can be revoked (logout)
+- One active token per user (simple mode)
 
 ### 3.2. Authorization Rules
 
 | Resource | Action | Rule |
 |----------|--------|------|
+| Auth | Register/Login/Refresh | Public |
+| Auth | Logout/Me | Authenticated |
+| Users | Read/Update own | Authenticated (self only) |
 | Locations | Read | Public (all users) |
-| Locations | Write | Admin only (service role) |
+| Locations | Write | Admin only (future) |
 | Attractions | Read | Public (all users) |
 | Attractions | Create | Authenticated users |
 | Attractions | Update/Delete | Owner only |
@@ -1136,9 +1221,28 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 | TripAttractions | Read | Trip owner or public trips |
 | TripAttractions | Create/Update/Delete | Trip owner only |
 
-### 3.3. Row Level Security
+### 3.3. Security Implementation
 
-The database uses PostgreSQL Row Level Security (RLS) policies to enforce authorization at the database level, providing an additional security layer beyond API-level checks.
+Authorization is enforced at the **application layer** in .NET:
+
+```csharp
+// In MediatR handlers
+if (!_currentUserService.IsAuthenticated)
+    throw new UnauthorizedAccessException();
+
+if (trip.OwnerId != _currentUserService.UserId)
+    throw new ForbiddenAccessException();
+```
+
+**Security Measures:**
+| Aspect | Implementation |
+|--------|---------------|
+| Password Storage | BCrypt (cost 12+) or Argon2id |
+| JWT Signing | HMAC-SHA256 with 256-bit secret |
+| Refresh Token | Cryptographically random, SHA256 hashed |
+| HTTPS | Required in production |
+| Rate Limiting | On auth endpoints (login, register) |
+| Token Revocation | Via `revoked_at` timestamp in database |
 
 ---
 
@@ -1146,10 +1250,12 @@ The database uses PostgreSQL Row Level Security (RLS) policies to enforce author
 
 ### 4.1. Validation Rules by Resource
 
-#### Profiles
+#### Users
 | Field | Rule |
 |-------|------|
-| displayName | Max 100 characters |
+| email | Required, valid email format, max 255 characters, unique |
+| password | Required, min 8 characters, complexity requirements |
+| displayName | Optional, max 100 characters |
 
 #### Locations
 | Field | Rule |
@@ -1226,7 +1332,7 @@ The database uses PostgreSQL Row Level Security (RLS) policies to enforce author
 
 ### 4.3. Error Response Format
 
-All error responses follow a consistent format:
+All error responses follow RFC 7807 Problem Details format:
 
 ```json
 {

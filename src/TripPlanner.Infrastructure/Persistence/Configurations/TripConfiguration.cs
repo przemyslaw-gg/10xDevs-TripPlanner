@@ -58,7 +58,7 @@ public class TripConfiguration : IEntityTypeConfiguration<Trip>
 
         // Relationships
         builder.HasOne(t => t.Owner)
-            .WithMany(p => p.Trips)
+            .WithMany(u => u.Trips)
             .HasForeignKey(t => t.OwnerId)
             .OnDelete(DeleteBehavior.Cascade);
 

@@ -75,7 +75,7 @@ public class AttractionConfiguration : IEntityTypeConfiguration<Attraction>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(a => a.CreatedByUser)
-            .WithMany(p => p.CreatedAttractions)
+            .WithMany(u => u.CreatedAttractions)
             .HasForeignKey(a => a.CreatedByUserId)
             .OnDelete(DeleteBehavior.SetNull);
 

@@ -8,7 +8,8 @@ namespace TripPlanner.Application.Common.Interfaces;
 /// </summary>
 public interface IApplicationDbContext
 {
-    DbSet<Profile> Profiles { get; }
+    DbSet<User> Users { get; }
+    DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<Location> Locations { get; }
     DbSet<Attraction> Attractions { get; }
     DbSet<Trip> Trips { get; }

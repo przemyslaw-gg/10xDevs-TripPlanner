@@ -19,6 +19,6 @@ public class Attraction : BaseEntity
 
     // Navigation properties
     public Location Location { get; set; } = null!;
-    public Profile? CreatedByUser { get; set; }
+    public User? CreatedByUser { get; set; }
     public ICollection<TripAttraction> TripAttractions { get; set; } = new List<TripAttraction>();
 }

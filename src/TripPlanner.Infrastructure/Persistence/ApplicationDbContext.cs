@@ -14,7 +14,8 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     {
     }
 
-    public DbSet<Profile> Profiles => Set<Profile>();
+    public DbSet<User> Users => Set<User>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<Attraction> Attractions => Set<Attraction>();
     public DbSet<Trip> Trips => Set<Trip>();
@@ -30,7 +31,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        // Auto-update timestamps
+        // Auto-update timestamps for BaseEntity
         foreach (var entry in ChangeTracker.Entries<BaseEntity>())
         {
             switch (entry.State)
@@ -42,6 +43,15 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
                 case EntityState.Modified:
                     entry.Entity.UpdatedAt = DateTime.UtcNow;
                     break;
+            }
+        }
+
+        // Auto-update timestamps for RefreshToken
+        foreach (var entry in ChangeTracker.Entries<RefreshToken>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                entry.Entity.CreatedAt = DateTime.UtcNow;
             }
         }
 

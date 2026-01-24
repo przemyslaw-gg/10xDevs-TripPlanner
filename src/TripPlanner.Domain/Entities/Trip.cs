@@ -14,7 +14,7 @@ public class Trip : BaseEntity
     public TimeOnly StartTime { get; set; } = new TimeOnly(9, 0);
 
     // Navigation properties
-    public Profile Owner { get; set; } = null!;
+    public User Owner { get; set; } = null!;
     public Location? Location { get; set; }
     public ICollection<TripAttraction> TripAttractions { get; set; } = new List<TripAttraction>();
 }
