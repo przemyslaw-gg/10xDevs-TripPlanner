@@ -51,6 +51,8 @@ public static class WebApplicationExtensions
         app.MapAuthEndpoints();
         app.MapLocationEndpoints();
         app.MapAttractionEndpoints();
+        app.MapTripEndpoints();
+        app.MapTripAttractionEndpoints();
 
         return app;
     }
