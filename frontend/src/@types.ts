@@ -688,3 +688,315 @@ export type PartialExcept<T, K extends keyof T> = Partial<T> & Pick<T, K>;
  * Make specified properties required
  */
 export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
+
+// =============================================================================
+// AUTH FORM TYPES
+// =============================================================================
+
+/**
+ * Login form data (includes UI-only fields like rememberMe)
+ */
+export interface LoginFormData {
+  email: string;
+  password: string;
+  rememberMe: boolean;
+}
+
+/**
+ * Register form data (includes confirmPassword for validation)
+ */
+export interface RegisterFormData {
+  email: string;
+  displayName: string;
+  password: string;
+  confirmPassword: string;
+}
+
+// =============================================================================
+// PASSWORD STRENGTH TYPES
+// =============================================================================
+
+/**
+ * Password strength level
+ */
+export type PasswordStrengthLevel = 'weak' | 'fair' | 'good' | 'strong';
+
+/**
+ * Status of password requirements
+ */
+export interface PasswordRequirementsStatus {
+  minLength: boolean;      // >= 8 characters
+  hasUppercase: boolean;   // contains uppercase letter
+  hasDigit: boolean;       // contains digit
+}
+
+/**
+ * Full password strength analysis result
+ */
+export interface PasswordStrength {
+  score: number;                          // 0-4
+  level: PasswordStrengthLevel;
+  requirements: PasswordRequirementsStatus;
+  isValid: boolean;                       // all requirements met
+}
+
+// =============================================================================
+// AUTH COMPONENT PROPS
+// =============================================================================
+
+/**
+ * Props for PasswordInput component
+ */
+export interface PasswordInputProps {
+  id: string;
+  name: string;
+  label: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  error?: string;
+  placeholder?: string;
+  autoComplete?: 'current-password' | 'new-password';
+  autoFocus?: boolean;
+  disabled?: boolean;
+}
+
+/**
+ * Props for PasswordStrengthIndicator component
+ */
+export interface PasswordStrengthIndicatorProps {
+  strength: PasswordStrength;
+}
+
+/**
+ * Props for PasswordRequirements component
+ */
+export interface PasswordRequirementsProps {
+  requirements: PasswordRequirementsStatus;
+}
+
+/**
+ * Props for RememberMeCheckbox component
+ */
+export interface RememberMeCheckboxProps {
+  id: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  disabled?: boolean;
+}
+
+// =============================================================================
+// AUTH CONTEXT TYPES
+// =============================================================================
+
+/**
+ * Auth context value interface
+ */
+export interface AuthContextValue {
+  isAuthenticated: boolean;
+  user: UserDTO | null;
+  isLoading: boolean;
+  login: (data: LoginCommand, rememberMe?: boolean) => Promise<void>;
+  register: (data: RegisterCommand) => Promise<void>;
+  logout: () => Promise<void>;
+}
+
+/**
+ * Auth error type for handling API errors
+ */
+export interface AuthError {
+  type: 'validation' | 'unauthorized' | 'conflict' | 'network' | 'unknown';
+  message: string;
+  fieldErrors?: Record<string, string>;
+}
+
+// =============================================================================
+// TRIP FORM TYPES
+// =============================================================================
+
+/**
+ * ViewModel for trip creation/edit form
+ */
+export interface TripFormData {
+  name: string;
+  locationId: UUID | null;
+  dailyHours: number;
+  maxExtensionHours: number;
+  startTime: string; // format HH:mm
+}
+
+/**
+ * Status of autosave operation
+ */
+export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
+// =============================================================================
+// TRIP HOOKS RETURN TYPES
+// =============================================================================
+
+/**
+ * Return type for useTrips hook
+ */
+export interface UseTripsReturn {
+  trips: TripListItemDTO[];
+  pagination: PaginationDTO | null;
+  isLoading: boolean;
+  error: string | null;
+  currentPage: number;
+  setPage: (page: number) => void;
+  refresh: () => void;
+}
+
+/**
+ * Return type for useTripDetails hook
+ */
+export interface UseTripDetailsReturn {
+  trip: TripDTO | null;
+  attractions: TripAttractionItemDTO[];
+  isLoading: boolean;
+  isSaving: boolean;
+  saveStatus: SaveStatus;
+  error: string | null;
+
+  // Actions
+  updateTrip: (updates: Partial<UpdateTripCommand>) => void;
+  moveAttractionUp: (attractionId: UUID) => void;
+  moveAttractionDown: (attractionId: UUID) => void;
+  removeAttraction: (attractionId: UUID) => Promise<void>;
+  deleteTrip: () => Promise<void>;
+  refresh: () => void;
+}
+
+// =============================================================================
+// TRIP COMPONENT PROPS
+// =============================================================================
+
+/**
+ * Props for TripCard component
+ */
+export interface TripCardProps {
+  trip: TripListItemDTO;
+}
+
+/**
+ * Props for TripList component
+ */
+export interface TripListProps {
+  trips: TripListItemDTO[];
+  isLoading: boolean;
+  onClearFilters?: () => void;
+}
+
+/**
+ * Props for TripForm component
+ */
+export interface TripFormProps {
+  initialData?: Partial<TripFormData>;
+  locations: LocationListItemDTO[];
+  isLoadingLocations: boolean;
+  onSubmit: (data: TripFormData) => Promise<void>;
+  onCancel: () => void;
+  submitLabel?: string;
+  isSubmitting?: boolean;
+}
+
+/**
+ * Props for CharacterCounter component
+ */
+export interface CharacterCounterProps {
+  current: number;
+  max: number;
+  warningThreshold?: number; // default 80
+}
+
+/**
+ * Props for TripHeader component
+ */
+export interface TripHeaderProps {
+  trip: TripDTO;
+  onNameChange: (name: string) => void;
+  saveStatus: SaveStatus;
+}
+
+/**
+ * Props for EditableTitle component
+ */
+export interface EditableTitleProps {
+  value: string;
+  onChange: (value: string) => void;
+  maxLength?: number;
+  placeholder?: string;
+}
+
+/**
+ * Props for SaveStatusIndicator component
+ */
+export interface SaveStatusIndicatorProps {
+  status: SaveStatus;
+}
+
+/**
+ * Props for TripSettingsPanel component
+ */
+export interface TripSettingsPanelProps {
+  trip: TripDTO;
+  locations: LocationListItemDTO[];
+  onChange: (updates: Partial<UpdateTripCommand>) => void;
+  disabled?: boolean;
+}
+
+/**
+ * Props for TripAttractionList component
+ */
+export interface TripAttractionListProps {
+  attractions: TripAttractionItemDTO[];
+  totalCount: number;
+  maxCount: number;
+  onMoveUp: (attractionId: UUID) => void;
+  onMoveDown: (attractionId: UUID) => void;
+  onRemove: (attractionId: UUID) => void;
+  isLoading?: boolean;
+  disabled?: boolean;
+}
+
+/**
+ * Props for AttractionItem component (in trip context)
+ */
+export interface TripAttractionItemProps {
+  attraction: TripAttractionItemDTO;
+  isFirst: boolean;
+  isLast: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  onRemove: () => void;
+  disabled?: boolean;
+}
+
+/**
+ * Props for AddAttractionButton component
+ */
+export interface AddAttractionButtonProps {
+  tripId: UUID;
+  disabled?: boolean;
+  currentCount: number;
+  maxCount: number;
+}
+
+/**
+ * Props for DeleteTripButton component
+ */
+export interface DeleteTripButtonProps {
+  onClick: () => void;
+  disabled?: boolean;
+}
+
+/**
+ * Props for ConfirmDeleteModal component
+ */
+export interface ConfirmDeleteModalProps {
+  isOpen: boolean;
+  tripName: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isDeleting?: boolean;
+}
