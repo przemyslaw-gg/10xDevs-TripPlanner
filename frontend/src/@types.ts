@@ -1000,3 +1000,47 @@ export interface ConfirmDeleteModalProps {
   onCancel: () => void;
   isDeleting?: boolean;
 }
+
+// =============================================================================
+// ROUTE OPTIMIZATION COMPONENT PROPS
+// =============================================================================
+
+/**
+ * Props for OptimizeRouteButton component
+ */
+export interface OptimizeRouteButtonProps {
+  onClick: () => void;
+  disabled?: boolean;
+  isOptimizing?: boolean;
+  attractionsCount: number;
+}
+
+/**
+ * Props for SelectStartingAttractionModal component
+ */
+export interface SelectStartingAttractionModalProps {
+  isOpen: boolean;
+  attractions: TripAttractionItemDTO[];
+  onConfirm: (startingAttractionId: UUID) => void;
+  onCancel: () => void;
+  isOptimizing?: boolean;
+}
+
+/**
+ * Props for AttractionRadioItem component
+ */
+export interface AttractionRadioItemProps {
+  attraction: TripAttractionItemDTO;
+  isSelected: boolean;
+  onSelect: () => void;
+  disabled?: boolean;
+}
+
+/**
+ * Props for OptimizationResultToast component
+ */
+export interface OptimizationResultToastProps {
+  isVisible: boolean;
+  totalDistance: number;
+  onClose: () => void;
+}

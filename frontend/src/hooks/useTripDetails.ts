@@ -3,6 +3,7 @@ import type {
   TripDTO,
   TripAttractionItemDTO,
   UpdateTripCommand,
+  OptimizeRouteResponseDTO,
   SaveStatus,
   UUID,
 } from '../@types';
@@ -13,6 +14,7 @@ import {
   deleteTrip as deleteTripApi,
   removeTripAttraction,
   reorderTripAttractions,
+  optimizeRoute as optimizeRouteApi,
   parseTripError,
 } from '../api/trips';
 
@@ -48,6 +50,7 @@ export interface UseTripDetailsReturn {
   attractions: TripAttractionItemDTO[];
   isLoading: boolean;
   isSaving: boolean;
+  isOptimizing: boolean;
   saveStatus: SaveStatus;
   error: string | null;
 
@@ -57,6 +60,7 @@ export interface UseTripDetailsReturn {
   moveAttractionDown: (attractionId: UUID) => void;
   removeAttraction: (attractionId: UUID) => Promise<void>;
   deleteTrip: () => Promise<void>;
+  optimizeRoute: (startingAttractionId: UUID) => Promise<OptimizeRouteResponseDTO>;
   refresh: () => void;
 }
 
@@ -69,6 +73,7 @@ export function useTripDetails(tripId: UUID): UseTripDetailsReturn {
   const [attractions, setAttractions] = useState<TripAttractionItemDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -294,6 +299,47 @@ export function useTripDetails(tripId: UUID): UseTripDetailsReturn {
     }
   }, [tripId]);
 
+  // Optimize route using nearest neighbor algorithm
+  const optimizeRoute = useCallback(
+    async (startingAttractionId: UUID): Promise<OptimizeRouteResponseDTO> => {
+      setIsOptimizing(true);
+      setError(null);
+
+      try {
+        const result = await optimizeRouteApi(tripId, { startingAttractionId });
+
+        // Update attractions order based on optimization result
+        const optimizedAttractions = result.optimizedOrder.map((item) => {
+          const existingAttraction = attractions.find(
+            (a) => a.attractionId === item.attractionId
+          );
+          if (!existingAttraction) {
+            throw new Error(`Attraction ${item.attractionId} not found`);
+          }
+          return {
+            ...existingAttraction,
+            dayNumber: item.dayNumber,
+            orderIndex: item.orderIndex,
+          };
+        });
+
+        // Sort by orderIndex to ensure correct display order
+        optimizedAttractions.sort((a, b) => a.orderIndex - b.orderIndex);
+
+        setAttractions(optimizedAttractions);
+
+        return result;
+      } catch (err) {
+        const errorMessage = parseTripError(err);
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      } finally {
+        setIsOptimizing(false);
+      }
+    },
+    [tripId, attractions]
+  );
+
   // Refresh data
   const refresh = useCallback(() => {
     loadData();
@@ -304,6 +350,7 @@ export function useTripDetails(tripId: UUID): UseTripDetailsReturn {
     attractions,
     isLoading,
     isSaving,
+    isOptimizing,
     saveStatus,
     error,
     updateTripData,
@@ -311,6 +358,7 @@ export function useTripDetails(tripId: UUID): UseTripDetailsReturn {
     moveAttractionDown,
     removeAttraction,
     deleteTrip,
+    optimizeRoute,
     refresh,
   };
 }

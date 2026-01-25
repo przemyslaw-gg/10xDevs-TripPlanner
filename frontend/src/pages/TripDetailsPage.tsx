@@ -7,6 +7,9 @@ import { TripHeader } from '../components/trips/TripHeader';
 import { TripSettingsPanel } from '../components/trips/TripSettingsPanel';
 import { TripAttractionList } from '../components/trips/TripAttractionList';
 import { AddAttractionButton } from '../components/trips/AddAttractionButton';
+import { OptimizeRouteButton } from '../components/trips/OptimizeRouteButton';
+import { SelectStartingAttractionModal } from '../components/trips/SelectStartingAttractionModal';
+import { OptimizationResultToast } from '../components/trips/OptimizationResultToast';
 import { DeleteTripButton } from '../components/trips/DeleteTripButton';
 import { ConfirmDeleteModal } from '../components/trips/ConfirmDeleteModal';
 
@@ -27,6 +30,7 @@ export function TripDetailsPage() {
     attractions,
     isLoading,
     isSaving,
+    isOptimizing,
     saveStatus,
     error,
     updateTripData,
@@ -34,6 +38,7 @@ export function TripDetailsPage() {
     moveAttractionDown,
     removeAttraction,
     deleteTrip,
+    optimizeRoute,
   } = useTripDetails(tripId);
 
   // Locations for settings panel
@@ -44,6 +49,13 @@ export function TripDetailsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Optimization modal and toast state
+  const [showOptimizeModal, setShowOptimizeModal] = useState(false);
+  const [optimizationResult, setOptimizationResult] = useState<{
+    isVisible: boolean;
+    totalDistance: number;
+  } | null>(null);
 
   // Load locations
   useEffect(() => {
@@ -94,6 +106,35 @@ export function TripDetailsPage() {
     } catch (err) {
       console.error('Failed to remove attraction:', err);
     }
+  };
+
+  // Handle route optimization
+  const handleOptimizeClick = () => {
+    setShowOptimizeModal(true);
+  };
+
+  const handleOptimizeConfirm = async (startingAttractionId: UUID) => {
+    try {
+      const result = await optimizeRoute(startingAttractionId);
+      setShowOptimizeModal(false);
+      setOptimizationResult({
+        isVisible: true,
+        totalDistance: result.totalDistance,
+      });
+    } catch (err) {
+      console.error('Failed to optimize route:', err);
+      // Modal will stay open, error is shown via hook's error state
+    }
+  };
+
+  const handleOptimizeCancel = () => {
+    if (!isOptimizing) {
+      setShowOptimizeModal(false);
+    }
+  };
+
+  const handleCloseOptimizationToast = () => {
+    setOptimizationResult(null);
   };
 
   // Loading state
@@ -263,12 +304,20 @@ export function TripDetailsPage() {
               <h2 className="text-xl font-semibold text-gray-900">
                 Zaplanowane atrakcje
               </h2>
-              <AddAttractionButton
-                tripId={tripId}
-                disabled={isSaving}
-                currentCount={attractions.length}
-                maxCount={MAX_ATTRACTIONS}
-              />
+              <div className="flex items-center gap-3">
+                <OptimizeRouteButton
+                  onClick={handleOptimizeClick}
+                  disabled={isSaving}
+                  isOptimizing={isOptimizing}
+                  attractionsCount={attractions.length}
+                />
+                <AddAttractionButton
+                  tripId={tripId}
+                  disabled={isSaving}
+                  currentCount={attractions.length}
+                  maxCount={MAX_ATTRACTIONS}
+                />
+              </div>
             </div>
 
             {/* Attractions list */}
@@ -293,6 +342,24 @@ export function TripDetailsPage() {
         onCancel={handleDeleteCancel}
         isDeleting={isDeleting}
       />
+
+      {/* Route optimization modal */}
+      <SelectStartingAttractionModal
+        isOpen={showOptimizeModal}
+        attractions={attractions}
+        onConfirm={handleOptimizeConfirm}
+        onCancel={handleOptimizeCancel}
+        isOptimizing={isOptimizing}
+      />
+
+      {/* Optimization result toast */}
+      {optimizationResult && (
+        <OptimizationResultToast
+          isVisible={optimizationResult.isVisible}
+          totalDistance={optimizationResult.totalDistance}
+          onClose={handleCloseOptimizationToast}
+        />
+      )}
 
       {/* Delete error toast */}
       {deleteError && (

@@ -9,6 +9,8 @@ import type {
   TripAttractionItemDTO,
   ReorderTripAttractionsCommand,
   ReorderAttractionsResponseDTO,
+  OptimizeRouteCommand,
+  OptimizeRouteResponseDTO,
   ApiErrorResponse,
   UUID,
 } from '../@types';
@@ -227,6 +229,27 @@ export async function reorderTripAttractions(
 }
 
 /**
+ * POST /api/trips/{tripId}/optimize-route
+ * Optimize the visiting order of attractions using nearest neighbor algorithm
+ */
+export async function optimizeRoute(
+  tripId: UUID,
+  data: OptimizeRouteCommand
+): Promise<OptimizeRouteResponseDTO> {
+  const response = await fetch(`${API_BASE_URL}/trips/${tripId}/optimize-route`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    await handleErrorResponse(response);
+  }
+
+  return response.json();
+}
+
+/**
  * Helper to parse trip-related API errors into user-friendly messages
  */
 export function parseTripError(error: unknown): string {
@@ -244,6 +267,8 @@ export function parseTripError(error: unknown): string {
         return 'Wycieczka nie została znaleziona';
       case 409:
         return 'Atrakcja jest już dodana do wycieczki';
+      case 422:
+        return 'Dodaj atrakcje do wycieczki przed optymalizacją';
       default:
         return apiError.detail || 'Wystąpił nieoczekiwany błąd';
     }
