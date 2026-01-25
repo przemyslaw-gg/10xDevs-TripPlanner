@@ -1,19 +1,70 @@
-import type { TripAttractionListProps } from '../../@types';
+import { useMemo } from 'react';
+import type { TripAttractionListProps, TripAttractionItemDTO } from '../../@types';
 import { AttractionItem } from './AttractionItem';
+import { DaySeparator } from './DaySeparator';
+
+/**
+ * Represents either an attraction item or a day separator in the rendered list
+ */
+type ListItem =
+  | { type: 'attraction'; data: TripAttractionItemDTO; index: number }
+  | { type: 'separator'; dayNumber: number };
+
+/**
+ * Calculate day breaks based on daily hours limit and attraction durations
+ * Returns a list of items with separators inserted at day boundaries
+ */
+function calculateDayBreaks(
+  attractions: TripAttractionItemDTO[],
+  dailyMinutes: number
+): ListItem[] {
+  if (attractions.length === 0) return [];
+
+  const items: ListItem[] = [];
+  let currentDayMinutes = 0;
+  let currentDay = 1;
+
+  attractions.forEach((attraction, index) => {
+    const duration = attraction.attraction.estimatedDuration ?? 0;
+
+    // Check if adding this attraction exceeds daily limit
+    // If so, start a new day (but only if we've already added something to current day)
+    if (currentDayMinutes > 0 && currentDayMinutes + duration > dailyMinutes) {
+      currentDay++;
+      currentDayMinutes = 0;
+      // Add separator before this attraction
+      items.push({ type: 'separator', dayNumber: currentDay });
+    }
+
+    // Add the attraction
+    items.push({ type: 'attraction', data: attraction, index });
+    currentDayMinutes += duration;
+  });
+
+  return items;
+}
 
 /**
  * List of attractions assigned to a trip with reorder functionality
+ * Shows day separators based on daily hours limit
  */
 export function TripAttractionList({
   attractions,
   totalCount,
   maxCount,
+  dailyHours,
   onMoveUp,
   onMoveDown,
   onRemove,
   isLoading = false,
   disabled = false,
 }: TripAttractionListProps) {
+  // Calculate day breaks
+  const dailyMinutes = dailyHours * 60;
+  const listItems = useMemo(
+    () => calculateDayBreaks(attractions, dailyMinutes),
+    [attractions, dailyMinutes]
+  );
   // Loading skeleton
   if (isLoading) {
     return (
@@ -74,20 +125,32 @@ export function TripAttractionList({
         </span>
       </div>
 
-      {/* Attraction list */}
+      {/* Attraction list with day separators */}
       <div className="space-y-3">
-        {attractions.map((attraction, index) => (
-          <AttractionItem
-            key={attraction.id}
-            attraction={attraction}
-            isFirst={index === 0}
-            isLast={index === attractions.length - 1}
-            onMoveUp={() => onMoveUp(attraction.attractionId)}
-            onMoveDown={() => onMoveDown(attraction.attractionId)}
-            onRemove={() => onRemove(attraction.attractionId)}
-            disabled={disabled}
-          />
-        ))}
+        {listItems.map((item, idx) => {
+          if (item.type === 'separator') {
+            return (
+              <DaySeparator
+                key={`separator-day-${item.dayNumber}`}
+                dayNumber={item.dayNumber}
+              />
+            );
+          }
+
+          const { data: attraction, index } = item;
+          return (
+            <AttractionItem
+              key={attraction.id}
+              attraction={attraction}
+              isFirst={index === 0}
+              isLast={index === attractions.length - 1}
+              onMoveUp={() => onMoveUp(attraction.attractionId)}
+              onMoveDown={() => onMoveDown(attraction.attractionId)}
+              onRemove={() => onRemove(attraction.attractionId)}
+              disabled={disabled}
+            />
+          );
+        })}
       </div>
 
       {/* Limit warning */}

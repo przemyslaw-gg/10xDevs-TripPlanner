@@ -952,11 +952,19 @@ export interface TripAttractionListProps {
   attractions: TripAttractionItemDTO[];
   totalCount: number;
   maxCount: number;
+  dailyHours: number;
   onMoveUp: (attractionId: UUID) => void;
   onMoveDown: (attractionId: UUID) => void;
   onRemove: (attractionId: UUID) => void;
   isLoading?: boolean;
   disabled?: boolean;
+}
+
+/**
+ * Props for DaySeparator component
+ */
+export interface DaySeparatorProps {
+  dayNumber: number;
 }
 
 /**

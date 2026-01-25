@@ -325,6 +325,7 @@ export function TripDetailsPage() {
               attractions={attractions}
               totalCount={attractions.length}
               maxCount={MAX_ATTRACTIONS}
+              dailyHours={trip.dailyHours}
               onMoveUp={moveAttractionUp}
               onMoveDown={moveAttractionDown}
               onRemove={handleRemoveAttraction}
