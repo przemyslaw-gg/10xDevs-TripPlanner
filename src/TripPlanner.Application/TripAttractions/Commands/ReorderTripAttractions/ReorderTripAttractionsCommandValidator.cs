@@ -29,8 +29,8 @@ public class ReorderTripAttractionsCommandValidator : AbstractValidator<ReorderT
                     .WithMessage("Day number must be greater than 0");
 
                 item.RuleFor(x => x.OrderIndex)
-                    .GreaterThan(0)
-                    .WithMessage("Order index must be greater than 0");
+                    .GreaterThanOrEqualTo(0)
+                    .WithMessage("Order index must be 0 or greater");
             });
     }
 }

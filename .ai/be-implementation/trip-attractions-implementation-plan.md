@@ -24,7 +24,7 @@ Endpoint `/api/trips/{tripId}/attractions` zarządza atrakcjami przypisanymi do 
 {
   "attractionId": "uuid",
   "dayNumber": "int (>0)",
-  "orderIndex": "int (>0)"
+  "orderIndex": "int (>=0)"
 }
 ```
 
@@ -36,7 +36,7 @@ Endpoint `/api/trips/{tripId}/attractions` zarządza atrakcjami przypisanymi do 
 ```json
 {
   "dayNumber": "int (>0)",
-  "orderIndex": "int (>0)",
+  "orderIndex": "int (>=0)",
   "plannedStartTime": "string (HH:mm) | null"
 }
 ```
@@ -57,7 +57,7 @@ Endpoint `/api/trips/{tripId}/attractions` zarządza atrakcjami przypisanymi do 
     {
       "attractionId": "uuid",
       "dayNumber": "int (>0)",
-      "orderIndex": "int (>0)"
+      "orderIndex": "int (>=0)"
     }
   ]
 }
@@ -193,7 +193,7 @@ public record GetTripAttractionsQuery(
             "imageUrl": "string"
           },
           "dayNumber": 1,
-          "orderIndex": 1,
+          "orderIndex": 0,
           "plannedStartTime": "09:00:00"
         }
       ]
@@ -224,7 +224,7 @@ Header: `Location: /api/trips/{tripId}/attractions/{attractionId}`
   "tripId": "uuid",
   "attractionId": "uuid",
   "dayNumber": 2,
-  "orderIndex": 1,
+  "orderIndex": 0,
   "plannedStartTime": "10:00:00",
   "createdAt": "2026-01-22T10:00:00Z",
   "updatedAt": "2026-01-22T11:00:00Z"

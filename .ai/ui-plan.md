@@ -231,20 +231,35 @@ TripPlanner to aplikacja webowa SPA (Single Page Application) do planowania jedn
 
 | Atrybut | Wartość |
 |---------|---------|
-| **Ścieżka** | `/attractions` |
-| **Główny cel** | Odkrywanie atrakcji turystycznych |
-| **Dostęp** | Publiczny |
+| **Ścieżka** | `/attractions` lub `/attractions?tripId={id}` |
+| **Główny cel** | Odkrywanie atrakcji turystycznych / Dodawanie atrakcji do wycieczki |
+| **Dostęp** | Publiczny (tryb przeglądania) / Wymagane logowanie (tryb dodawania) |
+
+**Tryby działania:**
+
+1. **Tryb przeglądania** (`/attractions`):
+   - Standardowe przeglądanie atrakcji
+   - Karty klikalne jako linki do szczegółów (planowane)
+   - Przycisk "Dodaj własną atrakcję" (dla zalogowanych)
+
+2. **Tryb dodawania do wycieczki** (`/attractions?tripId={id}`):
+   - Nagłówek z nazwą wycieczki i linkiem powrotu
+   - Licznik atrakcji w wycieczce (X/20)
+   - Karty z przyciskiem "Dodaj do wycieczki"
+   - Po kliknięciu atrakcja dodawana bezpośrednio do wycieczki
+   - Blokada dodawania po osiągnięciu limitu 20 atrakcji
 
 **Kluczowe informacje do wyświetlenia:**
 - Lista kart atrakcji
 - Filtr lokalizacji (dropdown)
 - Paginacja (10 atrakcji na stronę)
-- Przycisk "Dodaj własną atrakcję" (tylko dla zalogowanych)
+- Przycisk "Dodaj własną atrakcję" (tylko tryb przeglądania + zalogowany)
 - Empty state dla braku wyników
+- *Tryb dodawania:* Nazwa wycieczki, licznik atrakcji, link powrotu
 
 **Kluczowe komponenty:**
 - `AttractionList` - grid kart atrakcji
-- `AttractionCard` - karta atrakcji (obrazek, nazwa, opis, lokalizacja)
+- `AttractionCard` - karta atrakcji z opcjonalnym przyciskiem "Dodaj"
 - `LocationFilter` - dropdown filtra lokalizacji
 - `Pagination` - nawigacja stron (Poprzednia/Następna + numery)
 - `CreateAttractionButton` - przycisk tworzenia (warunkowo)
@@ -254,23 +269,31 @@ TripPlanner to aplikacja webowa SPA (Single Page Application) do planowania jedn
 **Względy UX/A11y/Security:**
 - Skeleton loaders podczas ładowania
 - Filtrowanie po stronie serwera
-- Karty jako linki z alt text dla obrazków
+- W trybie przeglądania: karty jako linki z alt text dla obrazków
+- W trybie dodawania: karty z przyciskiem akcji, feedback "Dodano do wycieczki"
 - Badge "Własna" dla atrakcji użytkownika
 - Publiczny dostęp do przeglądania
+- Tylko właściciel wycieczki może dodawać atrakcje
 
 **Mapowanie API:**
 - `GET /api/attractions?locationId=...&page=...&pageSize=10` → lista atrakcji
 - `GET /api/locations` → lista lokalizacji dla filtra
+- `GET /api/trips/{tripId}` → dane wycieczki (tryb dodawania)
+- `GET /api/trips/{tripId}/attractions` → liczba atrakcji w wycieczce
+- `POST /api/trips/{tripId}/attractions` → dodanie atrakcji do wycieczki
 
 ---
 
-### 2.8. Szczegóły atrakcji
+### 2.8. Szczegóły atrakcji (Post-MVP)
+
+> **Uwaga:** Ten widok jest planowany do implementacji po MVP. Obecnie dodawanie atrakcji do wycieczki odbywa się bezpośrednio z listy atrakcji (sekcja 2.7).
 
 | Atrybut | Wartość |
 |---------|---------|
 | **Ścieżka** | `/attractions/:id` |
 | **Główny cel** | Wyświetlenie pełnych informacji o atrakcji |
 | **Dostęp** | Publiczny |
+| **Status** | Planowane (Post-MVP) |
 
 **Kluczowe informacje do wyświetlenia:**
 - Obrazek atrakcji (lub placeholder)
@@ -503,27 +526,21 @@ TripPlanner to aplikacja webowa SPA (Single Page Application) do planowania jedn
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  6. PRZEGLĄDANIE ATRAKCJI (/attractions)                                     │
+│  6. DODAWANIE ATRAKCJI (/attractions?tripId=...)                             │
+│     - Widzi nagłówek z nazwą wycieczki i licznikiem (X/20)                  │
 │     - Filtruje po lokalizacji                                               │
-│     - Przegląda listę atrakcji                                              │
-│     - Klika na interesującą atrakcję                                        │
+│     - Przegląda listę atrakcji z przyciskami "Dodaj"                        │
+│     - Klika "Dodaj do wycieczki" na wybranej atrakcji                       │
+│     - Widzi potwierdzenie "Dodano do wycieczki"                             │
+│     → Powtarza dla kolejnych atrakcji                                       │
+│     - Klika "Wróć do wycieczki" gdy skończy                                 │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  7. SZCZEGÓŁY ATRAKCJI (/attractions/:id)                                    │
-│     - Czyta opis atrakcji                                                   │
-│     - Klika "Dodaj do wycieczki"                                            │
-│     - Wybiera wycieczkę z listy w modalu                                    │
-│     - Widzi toast "Dodano do wycieczki"                                     │
-│     → Powtarza 6-7 dla kolejnych atrakcji                                   │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  8. SZCZEGÓŁY WYCIECZKI (/trips/:id)                                         │
+│  7. SZCZEGÓŁY WYCIECZKI (/trips/:id)                                         │
 │     - Widzi listę dodanych atrakcji                                         │
-│     - Zmienia kolejność (drag & drop)                                       │
+│     - Zmienia kolejność (przyciski góra/dół)                                │
 │     - Zmiany zapisują się automatycznie                                     │
 │     → Wycieczka gotowa!                                                     │
 └─────────────────────────────────────────────────────────────────────────────┘

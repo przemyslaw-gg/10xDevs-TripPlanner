@@ -189,7 +189,7 @@ CREATE TABLE trip_attractions (
 
     CONSTRAINT uq_trip_attraction UNIQUE (trip_id, attraction_id),
     CONSTRAINT chk_day_number_positive CHECK (day_number > 0),
-    CONSTRAINT chk_order_index_positive CHECK (order_index > 0)
+    CONSTRAINT chk_order_index_non_negative CHECK (order_index >= 0)
 );
 ```
 
@@ -199,7 +199,7 @@ CREATE TABLE trip_attractions (
 | `trip_id` | UUID | FK → trips, NOT NULL, ON DELETE CASCADE | Plan wycieczki |
 | `attraction_id` | UUID | FK → attractions, NOT NULL, ON DELETE RESTRICT | Atrakcja |
 | `day_number` | INTEGER | NOT NULL, CHECK > 0 | Numer dnia (1, 2, 3...) |
-| `order_index` | INTEGER | NOT NULL, CHECK > 0 | Kolejność w ramach dnia (1, 2, 3...) |
+| `order_index` | INTEGER | NOT NULL, CHECK >= 0 | Kolejność w ramach dnia (0, 1, 2...) |
 | `planned_start_time` | TIME | — | Planowana godzina rozpoczęcia |
 | `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | Data utworzenia |
 | `updated_at` | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | Data ostatniej modyfikacji |
@@ -207,7 +207,7 @@ CREATE TABLE trip_attractions (
 **Ograniczenia:**
 - `UNIQUE (trip_id, attraction_id)` — każda atrakcja może być tylko raz w planie
 - `CHECK (day_number > 0)` — numer dnia musi być dodatni
-- `CHECK (order_index > 0)` — kolejność musi być dodatnia
+- `CHECK (order_index >= 0)` — kolejność musi być nieujemna (indeksowanie od zera)
 
 ---
 

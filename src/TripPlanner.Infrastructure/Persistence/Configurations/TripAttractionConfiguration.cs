@@ -61,7 +61,7 @@ public class TripAttractionConfiguration : IEntityTypeConfiguration<TripAttracti
 
         // Check constraints are handled by database migration
         builder.ToTable(t => t.HasCheckConstraint("chk_day_number_positive", "day_number > 0"));
-        builder.ToTable(t => t.HasCheckConstraint("chk_order_index_positive", "order_index > 0"));
+        builder.ToTable(t => t.HasCheckConstraint("chk_order_index_non_negative", "order_index >= 0"));
 
         // Indexes
         builder.HasIndex(ta => new { ta.TripId, ta.DayNumber, ta.OrderIndex })

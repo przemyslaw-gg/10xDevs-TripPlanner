@@ -2,17 +2,20 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { PublicRoute } from './components/common/PublicRoute';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
+import { Navbar } from './components/common/Navbar';
 import { AttractionsPage } from './pages/AttractionsPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { TripsPage } from './pages/TripsPage';
 import { CreateTripPage } from './pages/CreateTripPage';
 import { TripDetailsPage } from './pages/TripDetailsPage';
+import { CreateAttractionPage } from './pages/CreateAttractionPage';
 
 export function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <Navbar />
         <Routes>
         {/* Auth routes */}
         <Route
@@ -60,6 +63,14 @@ export function App() {
 
         {/* Attractions routes */}
         <Route path="/attractions" element={<AttractionsPage />} />
+        <Route
+          path="/attractions/new"
+          element={
+            <ProtectedRoute>
+              <CreateAttractionPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Redirect root to trips (main view for logged in users) */}
         <Route path="/" element={<Navigate to="/trips" replace />} />

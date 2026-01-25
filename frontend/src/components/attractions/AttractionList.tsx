@@ -8,6 +8,8 @@ interface AttractionListProps {
   isLoading: boolean;
   currentUserId?: UUID | null;
   onClearFilters?: () => void;
+  /** When provided, shows "Add" button on cards */
+  onAddToTrip?: (attractionId: UUID) => Promise<void>;
 }
 
 const SKELETON_COUNT = 6;
@@ -17,6 +19,7 @@ export function AttractionList({
   isLoading,
   currentUserId,
   onClearFilters,
+  onAddToTrip,
 }: AttractionListProps) {
   // Loading state - show skeletons
   if (isLoading) {
@@ -52,6 +55,7 @@ export function AttractionList({
             currentUserId !== undefined &&
             attraction.createdByUserId === currentUserId
           }
+          onAddToTrip={onAddToTrip}
         />
       ))}
     </div>

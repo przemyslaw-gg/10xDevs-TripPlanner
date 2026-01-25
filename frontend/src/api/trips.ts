@@ -5,6 +5,8 @@ import type {
   CreateTripCommand,
   UpdateTripCommand,
   TripAttractionsResponseDTO,
+  AddTripAttractionCommand,
+  TripAttractionItemDTO,
   ReorderTripAttractionsCommand,
   ReorderAttractionsResponseDTO,
   ApiErrorResponse,
@@ -158,6 +160,27 @@ export async function fetchTripAttractions(tripId: UUID): Promise<TripAttraction
   const response = await fetch(`${API_BASE_URL}/trips/${tripId}/attractions`, {
     method: 'GET',
     headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    await handleErrorResponse(response);
+  }
+
+  return response.json();
+}
+
+/**
+ * POST /api/trips/{tripId}/attractions
+ * Add an attraction to a trip
+ */
+export async function addAttractionToTrip(
+  tripId: UUID,
+  data: AddTripAttractionCommand
+): Promise<TripAttractionItemDTO> {
+  const response = await fetch(`${API_BASE_URL}/trips/${tripId}/attractions`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
   });
 
   if (!response.ok) {
