@@ -14,21 +14,33 @@ RUN npm run build
 # =======================
 # BACKEND BUILD
 # =======================
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS backend-build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS backend-build
 WORKDIR /src
 
-COPY backend/*.csproj backend/
-RUN dotnet restore backend/TripPlanner.WebApi.csproj
+# Kopiuj plik solution
+COPY backend/TripPlanner.sln ./
 
-COPY backend/src backend
-WORKDIR /src/backend
-RUN dotnet publish TripPlanner.WebApi/TripPlanner.WebApi.csproj -c Release -o /app/publish
+# Kopiuj wszystkie pliki .csproj zachowując strukturę folderów
+COPY backend/src/TripPlanner.Domain/TripPlanner.Domain.csproj ./src/TripPlanner.Domain/
+COPY backend/src/TripPlanner.Application/TripPlanner.Application.csproj ./src/TripPlanner.Application/
+COPY backend/src/TripPlanner.Infrastructure/TripPlanner.Infrastructure.csproj ./src/TripPlanner.Infrastructure/
+COPY backend/src/TripPlanner.WebApi/TripPlanner.WebApi.csproj ./src/TripPlanner.WebApi/
+
+# Restore dependencies
+RUN dotnet restore TripPlanner.sln
+
+# Kopiuj caly kod zrodlowy
+COPY backend/src ./src
+
+# Publish
+WORKDIR /src/src/TripPlanner.WebApi
+RUN dotnet publish -c Release -o /app/publish --no-restore
 
 
 # =======================
 # FINAL RUNTIME
 # =======================
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS final
 WORKDIR /app
 
 COPY --from=backend-build /app/publish .
