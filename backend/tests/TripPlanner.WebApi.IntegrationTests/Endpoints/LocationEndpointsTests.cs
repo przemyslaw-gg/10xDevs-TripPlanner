@@ -32,13 +32,13 @@ public class LocationEndpointsTests
     [TestCleanup]
     public void Cleanup()
     {
-        _client?.Dispose();
+        _client.Dispose();
     }
 
     [ClassCleanup]
     public static void ClassCleanup()
     {
-        _factory?.Dispose();
+        _factory.Dispose();
     }
 
     #region GET /api/locations Tests
@@ -57,7 +57,7 @@ public class LocationEndpointsTests
         Assert.IsNotNull(result);
         Assert.IsNotNull(result.Items);
         Assert.IsNotNull(result.Pagination);
-        Assert.AreEqual(3, result.Items.Count);
+        Assert.HasCount(3, result.Items);
         Assert.AreEqual(1, result.Pagination.Page);
         Assert.AreEqual(20, result.Pagination.PageSize);
         Assert.AreEqual(3, result.Pagination.TotalItems);
@@ -75,7 +75,7 @@ public class LocationEndpointsTests
         var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<LocationListItemDto>>();
 
         Assert.IsNotNull(result);
-        Assert.AreEqual(1, result.Items.Count);
+        Assert.HasCount(1, result.Items);
         Assert.AreEqual("Athens", result.Items[0].Name);
         Assert.AreEqual("Greece", result.Items[0].Country);
     }
@@ -92,7 +92,7 @@ public class LocationEndpointsTests
         var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<LocationListItemDto>>();
 
         Assert.IsNotNull(result);
-        Assert.AreEqual(1, result.Items.Count);
+        Assert.HasCount(1, result.Items);
         Assert.AreEqual("Rome", result.Items[0].Name);
     }
 
@@ -108,7 +108,7 @@ public class LocationEndpointsTests
         var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<LocationListItemDto>>();
 
         Assert.IsNotNull(result);
-        Assert.AreEqual(2, result.Items.Count);
+        Assert.HasCount(2, result.Items);
         Assert.AreEqual(1, result.Pagination.Page);
         Assert.AreEqual(2, result.Pagination.PageSize);
         Assert.AreEqual(3, result.Pagination.TotalItems);
@@ -129,7 +129,7 @@ public class LocationEndpointsTests
         var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<LocationListItemDto>>();
 
         Assert.IsNotNull(result);
-        Assert.AreEqual(1, result.Items.Count);
+        Assert.HasCount(1, result.Items);
         Assert.AreEqual(2, result.Pagination.Page);
         Assert.IsFalse(result.Pagination.HasNextPage);
         Assert.IsTrue(result.Pagination.HasPreviousPage);
@@ -190,7 +190,7 @@ public class LocationEndpointsTests
         var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<LocationListItemDto>>();
 
         Assert.IsNotNull(result);
-        Assert.AreEqual(0, result.Items.Count);
+        Assert.HasCount(0, result.Items);
         Assert.AreEqual(0, result.Pagination.TotalItems);
     }
 
@@ -206,7 +206,7 @@ public class LocationEndpointsTests
         var result = await response.Content.ReadFromJsonAsync<PaginatedResponse<LocationListItemDto>>();
 
         Assert.IsNotNull(result);
-        Assert.AreEqual(3, result.Items.Count);
+        Assert.HasCount(3, result.Items);
 
         // Verify alphabetical order: Athens, Paris, Rome
         Assert.AreEqual("Athens", result.Items[0].Name);

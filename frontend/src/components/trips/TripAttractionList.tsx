@@ -127,7 +127,7 @@ export function TripAttractionList({
 
       {/* Attraction list with day separators */}
       <div className="space-y-3">
-        {listItems.map((item, idx) => {
+        {listItems.map((item) => {
           if (item.type === 'separator') {
             return (
               <DaySeparator

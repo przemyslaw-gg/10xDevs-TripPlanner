@@ -28,7 +28,7 @@ public class GetLocationsQueryValidatorTests
 
         // Assert
         Assert.IsTrue(result.IsValid);
-        Assert.AreEqual(0, result.Errors.Count);
+        Assert.IsEmpty(result.Errors);
     }
 
     [TestMethod]
@@ -56,7 +56,7 @@ public class GetLocationsQueryValidatorTests
 
         // Assert
         Assert.IsFalse(result.IsValid);
-        Assert.AreEqual(1, result.Errors.Count);
+        Assert.HasCount(1, result.Errors);
         Assert.IsTrue(result.Errors.Any(e => e.PropertyName == "Search"));
     }
 
@@ -85,7 +85,7 @@ public class GetLocationsQueryValidatorTests
 
         // Assert
         Assert.IsFalse(result.IsValid);
-        Assert.AreEqual(1, result.Errors.Count);
+        Assert.HasCount(1, result.Errors);
         Assert.IsTrue(result.Errors.Any(e => e.PropertyName == "Page"));
     }
 
@@ -154,7 +154,7 @@ public class GetLocationsQueryValidatorTests
 
         // Assert
         Assert.IsFalse(result.IsValid);
-        Assert.AreEqual(1, result.Errors.Count);
+        Assert.HasCount(1, result.Errors);
         Assert.IsTrue(result.Errors.Any(e => e.PropertyName == "PageSize"));
     }
 
@@ -216,7 +216,7 @@ public class GetLocationsQueryValidatorTests
 
         // Assert
         Assert.IsFalse(result.IsValid);
-        Assert.AreEqual(3, result.Errors.Count);
+        Assert.HasCount(3, result.Errors);
     }
 
     [TestMethod]

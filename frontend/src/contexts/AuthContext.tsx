@@ -110,6 +110,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
  * Hook to access auth context
  * @throws Error if used outside of AuthProvider
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuthContext(): AuthContextValue {
   const context = useContext(AuthContext);
 
@@ -123,6 +124,7 @@ export function useAuthContext(): AuthContextValue {
 /**
  * Helper to parse API errors into user-friendly messages
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function parseAuthError(error: unknown): string {
   if (!error) {
     return 'Wystąpił nieznany błąd';
