@@ -17,7 +17,7 @@ namespace TripPlanner.Infrastructure.Persistence.Migrations
             migrationBuilder.Sql(@"INSERT INTO public.locations(
 	            name, country, timezone, created_at, updated_at)
 	            VALUES ('Rzym', 'Włochy', 'A', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);");
-            
+
             migrationBuilder.Sql(@"
                 INSERT INTO public.attractions
                 (
